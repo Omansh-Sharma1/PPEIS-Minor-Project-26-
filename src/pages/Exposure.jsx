@@ -7,6 +7,8 @@ import { getRecommendations } from "../processors/recommendationProcessor";
 import { getExposureTrend } from "../processors/trendProcessor";
 import { getPredictionConfidence } from "../processors/confidenceProcessor";
 
+const TOTAL_HOURS = 24;
+
 export default function Exposure() {
   const [city, setCity] = useState("Delhi");
   const [input, setInput] = useState("Delhi");
@@ -20,7 +22,6 @@ export default function Exposure() {
     if (input.trim()) setCity(input.trim());
   };
 
-  // 🔹 ML + Formula Calculations
   const exposureML = data?.pm25
     ? calculateExposureML(data.pm25, outdoor, indoor, activity)
     : null;
@@ -35,13 +36,11 @@ export default function Exposure() {
     ? getRecommendations(data.pm25, outdoor, activity)
     : [];
 
-  // 🔹 Prediction Confidence Calculation
   const confidence =
     exposureML && exposureFormula
       ? getPredictionConfidence(exposureML, exposureFormula)
       : null;
 
-  // 🔹 Dynamic Insight Logic
   const insight =
     data?.pm25 && exposureML !== null && risk
       ? `Exposure is ${risk.toLowerCase()} due to ${
@@ -51,178 +50,299 @@ export default function Exposure() {
         }.`
       : null;
 
-  // 🔹 Trend Analysis
   const history = getExposureHistory();
   const trend = getExposureTrend(history);
 
-  // 🔹 Store history
   useEffect(() => {
     if (data && exposureML && risk) {
-      addExposureEntry({
-        exposure: exposureML,
-        risk,
-        pm25: data.pm25,
-      });
+      addExposureEntry({ exposure: exposureML, risk, pm25: data.pm25 });
     }
   }, [data, exposureML, risk]);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 text-white space-y-8">
-      
-      <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-        Exposure Analysis
-      </h1>
+    <div
+      className="relative min-h-screen max-w-4xl mx-auto px-6 py-12 text-white overflow-hidden"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
+      {/* Background grid */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      />
+      {/* Purple glow */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: -120, left: "50%", transform: "translateX(-50%)",
+          width: 600, height: 300,
+          background: "radial-gradient(ellipse, rgba(139,92,246,0.12) 0%, transparent 70%)",
+        }}
+      />
 
-      {/* 🔹 City Input */}
-      <div className="flex gap-4">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="px-4 py-2 bg-gray-800 rounded outline-none focus:ring-2 focus:ring-cyan-500"
-          placeholder="Enter city..."
-        />
-        <button
-          onClick={handleSearch}
-          className="bg-cyan-500 hover:bg-cyan-600 px-6 py-2 rounded font-medium transition-colors"
-        >
-          Search
-        </button>
+      <div className="relative z-10 space-y-10">
+
+        {/* PAGE HEADER */}
+        <div className="space-y-1">
+          <p className="text-xs text-slate-600 uppercase tracking-widest"
+            style={{ fontFamily: "'Space Mono', monospace" }}>
+            Analysis Module
+          </p>
+          <h1
+            className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
+            Exposure Analysis
+          </h1>
+        </div>
+
+        {/* CITY SEARCH */}
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"
+              style={{ fontFamily: "'Space Mono', monospace" }}>
+              ⌖
+            </span>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="w-full pl-8 pr-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-lg outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 text-sm text-slate-300 placeholder-slate-600 transition-all"
+              placeholder="Enter city..."
+            />
+          </div>
+          <button
+            onClick={handleSearch}
+            className="bg-cyan-400 hover:bg-cyan-500 text-gray-900 font-semibold px-6 py-2.5 rounded-lg text-sm transition-all hover:-translate-y-0.5"
+          >
+            Search →
+          </button>
+        </div>
+
+        {/* USER INPUTS PANEL */}
+        <div className="relative bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-7 overflow-hidden">
+          {/* Top shimmer */}
+          <div className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.3), transparent)" }} />
+
+          <p className="text-xs text-slate-600 uppercase tracking-widest -mb-2"
+            style={{ fontFamily: "'Space Mono', monospace" }}>
+            Input Parameters
+          </p>
+
+          {/* Outdoor Time */}
+          <div>
+            <div className="flex justify-between mb-3">
+              <label className="text-sm text-slate-400">Outdoor Time</label>
+              <span className="text-cyan-400 text-sm font-semibold"
+                style={{ fontFamily: "'Space Mono', monospace" }}>
+                {outdoor} hrs
+              </span>
+            </div>
+            <input
+              type="range" min="0" max="24" value={outdoor}
+              onChange={(e) => {
+                const newOutdoor = Number(e.target.value);
+                setOutdoor(newOutdoor);
+                setIndoor(TOTAL_HOURS - newOutdoor);
+              }}
+              className="w-full accent-cyan-400"
+            />
+            <div className="flex justify-between mt-1 text-xs text-slate-700">
+              <span>0h</span><span>12h</span><span>24h</span>
+            </div>
+          </div>
+
+          {/* Indoor Time */}
+          <div>
+            <div className="flex justify-between mb-3">
+              <label className="text-sm text-slate-400">Indoor Time</label>
+              <span className="text-purple-400 text-sm font-semibold"
+                style={{ fontFamily: "'Space Mono', monospace" }}>
+                {indoor} hrs
+              </span>
+            </div>
+            <input
+              type="range" min="0" max="24" value={indoor}
+              onChange={(e) => {
+                const newIndoor = Number(e.target.value);
+                setIndoor(newIndoor);
+                setOutdoor(TOTAL_HOURS - newIndoor);
+              }}
+              className="w-full accent-purple-400"
+            />
+            <div className="flex justify-between mt-1 text-xs text-slate-700">
+              <span>0h</span><span>12h</span><span>24h</span>
+            </div>
+          </div>
+
+          {/* Activity Level */}
+          <div>
+            <label className="text-sm text-slate-400 block mb-3">Activity Level</label>
+            <div className="flex gap-3">
+              {["rest", "walking", "running"].map((a) => (
+                <button
+                  key={a}
+                  onClick={() => setActivity(a)}
+                  className={`flex-1 py-2 rounded-lg text-sm capitalize font-medium transition-all ${
+                    activity === a
+                      ? "bg-cyan-400 text-gray-900"
+                      : "bg-white/[0.04] border border-white/[0.08] text-slate-400 hover:border-cyan-400/30 hover:text-slate-200"
+                  }`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* LOADING */}
+        {loading && (
+          <div className="flex items-center gap-3 text-cyan-400 text-sm"
+            style={{ fontFamily: "'Space Mono', monospace" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            Fetching environmental data...
+          </div>
+        )}
+
+        {/* ERROR */}
+        {error && (
+          <div className="flex items-center gap-3 bg-red-400/[0.06] border border-red-400/20 rounded-xl px-5 py-4">
+            <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        )}
+
+        {/* RESULTS */}
+        {data && exposureML !== null && (
+          <div className="space-y-5">
+
+            {/* 3 metric cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  label: "PM2.5 Level",
+                  value: `${data.pm25} µg/m³`,
+                  color: "text-orange-400",
+                  bar: "from-orange-400 to-red-400",
+                  barW: `${Math.min((data.pm25 / 150) * 100, 100)}%`,
+                },
+                {
+                  label: "Exposure (ML-Based)",
+                  value: Math.round(exposureML),
+                  color: "text-cyan-400",
+                  bar: "from-cyan-400 to-purple-400",
+                  barW: `${Math.min((exposureML / 1000) * 100, 100)}%`,
+                  sub: "Predicted via regression model",
+                },
+                {
+                  label: "Risk Category",
+                  value: risk,
+                  color: risk === "High" ? "text-red-400" : "text-green-400",
+                  bar: risk === "High" ? "from-red-400 to-red-500" : "from-green-400 to-teal-400",
+                  barW: risk === "High" ? "88%" : "35%",
+                },
+              ].map((card, i) => (
+                <div key={i}
+                  className="relative bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 overflow-hidden transition-all hover:border-cyan-400/25 hover:-translate-y-0.5">
+                  <div className="absolute top-0 left-0 right-0 h-px"
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.25), transparent)" }} />
+                  <p className="text-xs text-slate-500 uppercase tracking-widest mb-3"
+                    style={{ fontFamily: "'Space Mono', monospace" }}>
+                    {card.label}
+                  </p>
+                  <p className={`text-2xl font-bold mb-1 ${card.color}`}
+                    style={{ fontFamily: "'Space Mono', monospace" }}>
+                    {card.value}
+                  </p>
+                  {card.sub && <p className="text-xs text-slate-600 mb-2">{card.sub}</p>}
+                  <div className="h-0.5 bg-white/[0.05] rounded-full overflow-hidden mt-3">
+                    <div className={`h-full bg-gradient-to-r ${card.bar} rounded-full`}
+                      style={{ width: card.barW, transition: "width 1s ease" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ML vs Formula comparison */}
+            <div className="relative bg-white/[0.03] border border-white/[0.07] rounded-2xl px-6 py-4 overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-px"
+                style={{ background: "linear-gradient(90deg, transparent, rgba(167,139,250,0.3), transparent)" }} />
+              <div className="flex flex-wrap gap-8 text-sm">
+                <p>
+                  <span className="text-slate-500 mr-2"
+                    style={{ fontFamily: "'Space Mono', monospace" }}>ML Prediction</span>
+                  <span className="text-cyan-400 font-semibold">{Math.round(exposureML)}</span>
+                </p>
+                <p>
+                  <span className="text-slate-500 mr-2"
+                    style={{ fontFamily: "'Space Mono', monospace" }}>Formula Estimate</span>
+                  <span className="text-purple-400 font-semibold">{Math.round(exposureFormula)}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Confidence */}
+            {confidence && (
+              <div className="relative bg-white/[0.03] border border-white/[0.07] rounded-2xl px-6 py-4 overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.2), transparent)" }} />
+                <p className="text-xs text-slate-500 uppercase tracking-widest mb-1"
+                  style={{ fontFamily: "'Space Mono', monospace" }}>
+                  Prediction Confidence
+                </p>
+                <p className="text-sm text-slate-300">{confidence}</p>
+              </div>
+            )}
+
+            {/* Trend */}
+            {trend && (
+              <div className="relative bg-white/[0.03] border border-white/[0.07] rounded-2xl px-6 py-4 overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(167,139,250,0.2), transparent)" }} />
+                <p className="text-xs text-slate-500 uppercase tracking-widest mb-1"
+                  style={{ fontFamily: "'Space Mono', monospace" }}>
+                  Exposure Trend
+                </p>
+                <p className="text-sm text-slate-300">{trend}</p>
+              </div>
+            )}
+
+            {/* Insight */}
+            {insight && (
+              <div className="flex items-start gap-4 bg-cyan-400/[0.05] border border-cyan-400/20 rounded-xl px-5 py-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 flex-shrink-0 animate-pulse" />
+                <p className="text-sm text-cyan-100/80 leading-relaxed">{insight}</p>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {recommendations.length > 0 && (
+              <div className="relative bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.25), transparent)" }} />
+                <p className="text-xs text-slate-500 uppercase tracking-widest mb-4"
+                  style={{ fontFamily: "'Space Mono', monospace" }}>
+                  Recommendations
+                </p>
+                <ul className="space-y-3">
+                  {recommendations.map((r, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
+                      <span className="text-cyan-400 mt-0.5 flex-shrink-0">→</span>
+                      {r}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+          </div>
+        )}
       </div>
-
-      {/* 🔹 User Inputs */}
-      <div className="bg-gray-800 p-6 rounded-xl space-y-6">
-
-        <div>
-          <div className="flex justify-between mb-2">
-            <label className="text-gray-400">Outdoor Time</label>
-            <span className="text-cyan-400">{outdoor} hrs</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="12"
-            value={outdoor}
-            onChange={(e) => setOutdoor(Number(e.target.value))}
-            className="w-full accent-cyan-500"
-          />
-        </div>
-
-        <div>
-          <div className="flex justify-between mb-2">
-            <label className="text-gray-400">Indoor Time</label>
-            <span className="text-cyan-400">{indoor} hrs</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="24"
-            value={indoor}
-            onChange={(e) => setIndoor(Number(e.target.value))}
-            className="w-full accent-cyan-500"
-          />
-        </div>
-
-        <div>
-          <label className="text-gray-400">Activity Level</label>
-          <div className="flex gap-3 mt-2">
-            {["rest", "walking", "running"].map((a) => (
-              <button
-                key={a}
-                onClick={() => setActivity(a)}
-                className={`flex-1 px-4 py-2 rounded transition-all capitalize ${
-                  activity === a ? "bg-cyan-500 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
-        </div>
-
-      </div>
-
-      {/* 🔹 Loading / Error */}
-      {loading && <div className="text-cyan-400 animate-pulse">Fetching environmental data...</div>}
-      {error && <div className="bg-red-900/20 border border-red-500/50 p-4 rounded-lg text-red-400">{error}</div>}
-
-      {/* 🔹 Results */}
-      {data && exposureML !== null && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            <div className="bg-gray-900 border border-gray-800 p-6 rounded-xl">
-              <p className="text-gray-500 text-sm">PM2.5 Level</p>
-              <h2 className="text-2xl font-bold">{data.pm25} µg/m³</h2>
-            </div>
-
-            <div className="bg-gray-900 border border-gray-800 p-6 rounded-xl">
-              <p className="text-gray-500 text-sm">Exposure (ML-Based)</p>
-              <h2 className="text-2xl font-bold text-cyan-400">
-                {Math.round(exposureML)}
-              </h2>
-              <p className="text-xs text-gray-400 mt-1">
-                Predicted using trained regression model
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Model trained on synthetic exposure dataset
-              </p>
-            </div>
-
-            <div className="bg-gray-900 border border-gray-800 p-6 rounded-xl">
-              <p className="text-gray-500 text-sm">Risk Category</p>
-              <h2
-                className={`text-2xl font-bold ${
-                  risk === "High" ? "text-red-400" : "text-green-400"
-                }`}
-              >
-                {risk}
-              </h2>
-            </div>
-
-          </div>
-
-          {/* 🔥 ML vs Formula Comparison */}
-          <div className="bg-gray-800 border border-gray-700 p-4 rounded-xl flex flex-wrap gap-8">
-            <p><span className="text-gray-400">ML Prediction:</span> {Math.round(exposureML)}</p>
-            <p><span className="text-gray-400">Formula Estimate:</span> {Math.round(exposureFormula)}</p>
-          </div>
-
-          {/* 🔹 Prediction Confidence */}
-          {confidence && (
-            <div className="bg-gray-800 border border-gray-700 p-4 rounded-xl">
-              <strong>Prediction Confidence:</strong> {confidence}
-            </div>
-          )}
-
-          {/* 🔹 Trend */}
-          {trend && (
-            <div className="bg-gray-800 border border-gray-700 p-4 rounded-xl">
-              <strong>Trend:</strong> {trend}
-            </div>
-          )}
-
-          {/* 🔹 Health Insight */}
-          {insight && (
-            <div className="bg-cyan-900/20 border border-cyan-500/30 p-4 rounded-xl text-cyan-100">
-              {insight}
-            </div>
-          )}
-
-          {/* 🔹 Recommendations */}
-          {recommendations.length > 0 && (
-            <div className="bg-gray-800 border border-gray-700 p-6 rounded-xl">
-              <h3 className="font-bold mb-4">Recommendations</h3>
-              <ul className="space-y-2 text-gray-300">
-                {recommendations.map((r, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-cyan-500">•</span> {r}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }
